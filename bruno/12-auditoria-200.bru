@@ -1,0 +1,19 @@
+meta {
+  name: GET auditoria (200)
+  type: http
+  seq: 12
+}
+
+get {
+  url: {{baseUrl}}/api/admin/auditoria?limite=20
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{idTokenAdmin}}
+}
+
+assert {
+  res.status: eq 200
+}

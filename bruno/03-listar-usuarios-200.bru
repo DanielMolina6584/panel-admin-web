@@ -1,0 +1,19 @@
+meta {
+  name: GET usuarios (200)
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/admin/usuarios?limite=20
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{idTokenAdmin}}
+}
+
+assert {
+  res.status: eq 200
+}

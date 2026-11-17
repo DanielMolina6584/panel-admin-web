@@ -1,0 +1,20 @@
+meta {
+  name: GET yo como admin (200)
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/auth/yo
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{idTokenAdmin}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.usuario.rol: eq admin
+}

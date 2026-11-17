@@ -1,0 +1,19 @@
+meta {
+  name: GET usuario inexistente (404)
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{baseUrl}}/api/admin/usuarios/no-existe-123
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{idTokenAdmin}}
+}
+
+assert {
+  res.status: eq 404
+}

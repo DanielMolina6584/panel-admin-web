@@ -1,0 +1,23 @@
+meta {
+  name: PATCH rol como moderador (403)
+  type: http
+  seq: 9
+}
+
+patch {
+  url: {{baseUrl}}/api/admin/usuarios/{{uidObjetivo}}/rol
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{idTokenModerador}}
+}
+
+body:json {
+  { "rol": "admin" }
+}
+
+assert {
+  res.status: eq 403
+}

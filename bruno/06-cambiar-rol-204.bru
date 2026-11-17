@@ -1,0 +1,23 @@
+meta {
+  name: PATCH rol como admin (204)
+  type: http
+  seq: 6
+}
+
+patch {
+  url: {{baseUrl}}/api/admin/usuarios/{{uidObjetivo}}/rol
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{idTokenAdmin}}
+}
+
+body:json {
+  { "rol": "moderador" }
+}
+
+assert {
+  res.status: oneOf [204, 409]
+}

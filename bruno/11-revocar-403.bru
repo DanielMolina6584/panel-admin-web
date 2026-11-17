@@ -1,0 +1,19 @@
+meta {
+  name: POST revocar como moderador (403)
+  type: http
+  seq: 11
+}
+
+post {
+  url: {{baseUrl}}/api/admin/usuarios/{{uidObjetivo}}/revocar
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{idTokenModerador}}
+}
+
+assert {
+  res.status: eq 403
+}

@@ -1,0 +1,23 @@
+meta {
+  name: PATCH rol invalido (400)
+  type: http
+  seq: 7
+}
+
+patch {
+  url: {{baseUrl}}/api/admin/usuarios/{{uidObjetivo}}/rol
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{idTokenAdmin}}
+}
+
+body:json {
+  { "rol": "superadmin" }
+}
+
+assert {
+  res.status: eq 400
+}

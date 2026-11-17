@@ -1,0 +1,255 @@
+openapi: 3.0.3
+info:
+  title: Panel de administración con roles y auditoría
+  version: 1.0.0
+  description: |
+    API REST de Next.js. Autenticación con cookie de sesión `sesion` (HttpOnly) o, para pruebas,
+    `Authorization: Bearer <idToken>`. Las peticiones que modifican datos con cookie exigen `Origin` del mismo sitio.
+servers:
+  - url: http://localhost:3000
+    description: Desarrollo
+security:
+  - cookieSesion: []
+  - bearerIdToken: []
+paths:
+  /api/auth/sesion:
+    post:
+      summary: Crea la cookie de sesión a partir de un idToken reciente
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CuerpoSesion' }
+      responses:
+        '204':
+          description: Sesión creada (Set-Cookie sesion=...; HttpOnly; Secure; SameSite=Lax)
+        '400': { $ref: '#/components/responses/Validacion' }
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '415': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+        '500': { $ref: '#/components/responses/Error' }
+    delete:
+      summary: Cierra la sesión y revoca los refresh tokens
+      responses:
+        '204': { description: Cookie borrada }
+  /api/auth/yo:
+    get:
+      summary: Usuario de la sesión actual
+      responses:
+        '200':
+          description: Usuario autenticado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  usuario: { $ref: '#/components/schemas/UsuarioSesion' }
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+  /api/admin/resumen:
+    get:
+      summary: Totales y actividad reciente (admin, moderador)
+      responses:
+        '200': { description: Resumen }
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '403': { $ref: '#/components/responses/Prohibido' }
+  /api/admin/usuarios:
+    get:
+      summary: Lista y busca usuarios (admin, moderador)
+      parameters:
+        - { name: q, in: query, schema: { type: string, maxLength: 100 }, description: Texto en correo o nombre }
+        - { name: rol, in: query, schema: { $ref: '#/components/schemas/Rol' } }
+        - { name: cursor, in: query, schema: { type: string } }
+        - { name: limite, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+        - { name: orden, in: query, schema: { type: string, enum: [correo, creado, acceso], default: correo }, description: Se aplica dentro de la página }
+        - { name: dir, in: query, schema: { type: string, enum: [asc, desc], default: asc } }
+      responses:
+        '200':
+          description: Página de usuarios
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/UsuarioAdmin' }
+                  siguienteCursor: { type: string, nullable: true }
+        '400': { $ref: '#/components/responses/Validacion' }
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '403': { $ref: '#/components/responses/Prohibido' }
+  /api/admin/usuarios/{uid}:
+    parameters:
+      - { $ref: '#/components/parameters/Uid' }
+    get:
+      summary: Detalle de un usuario (admin, moderador)
+      responses:
+        '200':
+          description: Usuario
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  usuario: { $ref: '#/components/schemas/UsuarioAdmin' }
+        '400': { $ref: '#/components/responses/Validacion' }
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '403': { $ref: '#/components/responses/Prohibido' }
+        '404': { $ref: '#/components/responses/NoEncontrado' }
+  /api/admin/usuarios/{uid}/rol:
+    parameters:
+      - { $ref: '#/components/parameters/Uid' }
+    patch:
+      summary: Cambia el rol (solo admin). Audita en la misma transacción y revoca sesiones.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [rol]
+              additionalProperties: false
+              properties:
+                rol: { $ref: '#/components/schemas/Rol' }
+      responses:
+        '204': { description: Rol cambiado }
+        '400': { $ref: '#/components/responses/Validacion' }
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '403': { $ref: '#/components/responses/Prohibido' }
+        '404': { $ref: '#/components/responses/NoEncontrado' }
+        '409':
+          description: Ya tiene ese rol o sería el último administrador
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /api/admin/usuarios/{uid}/estado:
+    parameters:
+      - { $ref: '#/components/parameters/Uid' }
+    patch:
+      summary: Habilita o deshabilita la cuenta (solo admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [deshabilitado]
+              additionalProperties: false
+              properties:
+                deshabilitado: { type: boolean }
+      responses:
+        '204': { description: Estado cambiado }
+        '400': { $ref: '#/components/responses/Validacion' }
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '403': { $ref: '#/components/responses/Prohibido' }
+        '404': { $ref: '#/components/responses/NoEncontrado' }
+        '409': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /api/admin/usuarios/{uid}/revocar:
+    parameters:
+      - { $ref: '#/components/parameters/Uid' }
+    post:
+      summary: Revoca los refresh tokens del usuario (solo admin)
+      responses:
+        '204': { description: Sesiones revocadas }
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '403': { $ref: '#/components/responses/Prohibido' }
+        '404': { $ref: '#/components/responses/NoEncontrado' }
+        '429': { $ref: '#/components/responses/Error' }
+  /api/admin/auditoria:
+    get:
+      summary: Registro de auditoría, más reciente primero (solo admin)
+      parameters:
+        - { name: actorUid, in: query, schema: { type: string } }
+        - { name: objetivoUid, in: query, schema: { type: string } }
+        - { name: cursor, in: query, schema: { type: string } }
+        - { name: limite, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+      responses:
+        '200':
+          description: Página de registros
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/RegistroAuditoria' }
+                  siguienteCursor: { type: string, nullable: true }
+        '400': { $ref: '#/components/responses/Validacion' }
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '403': { $ref: '#/components/responses/Prohibido' }
+components:
+  securitySchemes:
+    cookieSesion: { type: apiKey, in: cookie, name: sesion }
+    bearerIdToken: { type: http, scheme: bearer }
+  parameters:
+    Uid:
+      name: uid
+      in: path
+      required: true
+      schema: { type: string, pattern: '^[A-Za-z0-9_-]+$', maxLength: 128 }
+  schemas:
+    Rol: { type: string, enum: [usuario, moderador, admin] }
+    CuerpoSesion:
+      type: object
+      required: [idToken]
+      additionalProperties: false
+      properties:
+        idToken: { type: string }
+    UsuarioSesion:
+      type: object
+      properties:
+        uid: { type: string }
+        correo: { type: string, nullable: true }
+        rol: { $ref: '#/components/schemas/Rol' }
+    UsuarioAdmin:
+      type: object
+      properties:
+        uid: { type: string }
+        correo: { type: string, nullable: true }
+        nombre: { type: string, nullable: true }
+        rol: { $ref: '#/components/schemas/Rol' }
+        deshabilitado: { type: boolean }
+        creadoEn: { type: string, format: date-time, nullable: true }
+        ultimoAcceso: { type: string, format: date-time, nullable: true }
+        ultimoRefresco: { type: string, format: date-time, nullable: true }
+        tokensValidosDesde: { type: string, format: date-time, nullable: true }
+    RegistroAuditoria:
+      type: object
+      properties:
+        id: { type: string }
+        actorUid: { type: string }
+        accion: { type: string, example: usuario.rol.cambiar }
+        objetivoUid: { type: string, nullable: true }
+        detalle: { type: object, additionalProperties: true }
+        creadoEn: { type: string, format: date-time }
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error: { type: string }
+        detalles:
+          type: array
+          items:
+            type: object
+            properties:
+              campo: { type: string }
+              mensaje: { type: string }
+  responses:
+    Validacion:
+      description: Datos no válidos (detalle por campo)
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    NoAutenticado:
+      description: Sin sesión o sesión no válida
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    Prohibido:
+      description: Sesión válida pero sin permiso
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    NoEncontrado:
+      description: El recurso no existe
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    Error:
+      description: Error (409 conflicto, 415 tipo no permitido, 429 demasiadas solicitudes, 500 interno)
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }

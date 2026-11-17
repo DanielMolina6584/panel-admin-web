@@ -1,0 +1,19 @@
+meta {
+  name: POST sesion con idToken (204)
+  type: http
+  seq: 14
+}
+
+post {
+  url: {{baseUrl}}/api/auth/sesion
+  body: json
+  auth: none
+}
+
+body:json {
+  { "idToken": "{{idTokenAdmin}}" }
+}
+
+assert {
+  res.status: eq 204
+}

@@ -1,0 +1,19 @@
+meta {
+  name: GET usuarios como usuario (403)
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/api/admin/usuarios
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{idTokenUsuario}}
+}
+
+assert {
+  res.status: eq 403
+}

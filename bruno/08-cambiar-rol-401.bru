@@ -1,0 +1,19 @@
+meta {
+  name: PATCH rol sin sesion (401)
+  type: http
+  seq: 8
+}
+
+patch {
+  url: {{baseUrl}}/api/admin/usuarios/{{uidObjetivo}}/rol
+  body: json
+  auth: none
+}
+
+body:json {
+  { "rol": "moderador" }
+}
+
+assert {
+  res.status: eq 401
+}

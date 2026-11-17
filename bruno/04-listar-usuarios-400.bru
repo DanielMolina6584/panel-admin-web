@@ -1,0 +1,19 @@
+meta {
+  name: GET usuarios limite invalido (400)
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/api/admin/usuarios?limite=500
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{idTokenAdmin}}
+}
+
+assert {
+  res.status: eq 400
+}
